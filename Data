@@ -1,0 +1,107 @@
+export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY"
+export AWS_DEFAULT_REGION="us-east-1"  import boto3
+import pandas as pd
+import random
+from datetime import datetime, timedelta
+from faker import Faker
+import os
+import time
+
+# -------------------------------
+# Initialize Faker and AWS Bedrock
+# -------------------------------
+fake = Faker()
+bedrock_client = boto3.client('bedrock', region_name='us-east-1')  # Adjust region
+
+# -------------------------------
+# Parameters
+# -------------------------------
+total_scenarios = 500  # total rows you want to generate
+batch_size = 20        # number of AI calls per batch
+locations = [fake.address().replace("\n", ", ") for _ in range(10)]
+
+# -------------------------------
+# Define call types and weights
+# -------------------------------
+categories = {
+    "Medical": ["Chest pain", "Stroke symptoms", "Seizures", "Unconscious person"],
+    "Crime": ["Active shooter", "Burglary/home invasion", "Assault/physical fight", "Shots fired"],
+    "Fire": ["House fire", "Apartment building fire", "Wildfire/brush fire"],
+    "Traffic": ["Car accident (with injury)", "Car accident (without injury)"],
+    "Environmental": ["Tornado sighting", "Earthquake damage"],
+    "Animal": ["Dog attack", "Loose dangerous animal"],
+    "NonEmergency": ["Noise complaint", "Fireworks complaint", "Parking violation"]
+}
+
+category_weights = {"Medical": 55, "Crime": 25, "Fire": 10, "Traffic": 5,
+                    "Environmental": 2, "Animal": 2, "NonEmergency": 1}
+
+call_types, weights = [], []
+for cat, reasons in categories.items():
+    weight_per_reason = category_weights[cat] / len(reasons)
+    for r in reasons:
+        call_types.append(r)
+        weights.append(weight_per_reason)
+
+# -------------------------------
+# Function to generate AI transcription
+# -------------------------------
+def generate_transcription(call_type, location):
+    prompt = (
+        f"Write a short, realistic 911 call transcription about this emergency:\n"
+        f"Emergency type: {call_type}\n"
+        f"Location: {location}\n"
+        f"Make it urgent, concise, and realistic."
+    )
+    try:
+        response = bedrock_client.invoke_model(
+            ModelId='NovaPro1.0',  # Replace with your Nova model
+            Body=prompt.encode('utf-8')
+        )
+        return response['Body'].read().decode('utf-8').strip()
+    except Exception as e:
+        print(f"AI generation failed: {e}")
+        # fallback template
+        return f"There is a report of {call_type} at {location}. Please send help immediately!"
+
+# -------------------------------
+# Generate dataset in batches
+# -------------------------------
+data = []
+num_batches = (total_scenarios + batch_size - 1) // batch_size
+
+for batch_num in range(num_batches):
+    current_batch_size = min(batch_size, total_scenarios - len(data))
+    print(f"Generating batch {batch_num+1}/{num_batches} with {current_batch_size} scenarios...")
+
+    for _ in range(current_batch_size):
+        start_dt = fake.date_time_this_year()
+        duration = timedelta(seconds=random.randint(30, 900))
+        end_dt = start_dt + duration
+
+        location = random.choice(locations)
+        caller_id = fake.name() if random.random() > 0.5 else "Anonymous"
+        call_type = random.choices(call_types, weights=weights, k=1)[0]
+
+        transcription = generate_transcription(call_type, location)
+
+        data.append({
+            "Transcription": transcription,
+            "Start Time": start_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "End Time": end_dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "Location": location,
+            "Caller ID": caller_id,
+            "Call Type": call_type
+        })
+
+    # Optional delay between batches to avoid hitting API limits
+    time.sleep(1)
+
+# -------------------------------
+# Save CSV to Desktop
+# -------------------------------
+desktop_path = os.path.join(os.path.expanduser("~"), "Desktop", "call_scenarios.csv")
+df = pd.DataFrame(data)
+df.to_csv(desktop_path, index=False)
+print(f"CSV saved to Desktop: {desktop_path}")
