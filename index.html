@@ -88,11 +88,6 @@
             }
         }
 
-        .alert-card.HIGH {
-            border-left-color: #ff4444;
-            background: linear-gradient(135deg, #fff 0%, #ffeeee 100%);
-        }
-
         .alert-card.MEDIUM {
             border-left-color: #ff9500;
             background: linear-gradient(135deg, #fff 0%, #fff4e6 100%);
@@ -149,12 +144,6 @@
             border-radius: 15px;
             font-weight: bold;
             font-size: 0.8rem;
-        }
-
-        .severity.HIGH {
-            background: #ff4444;
-            color: white;
-            animation: pulse 2s infinite;
         }
 
         .severity.MEDIUM {
@@ -324,10 +313,6 @@
             <span>Active Alerts</span>
         </div>
         <div class="status-item">
-            <span class="status-number" id="highPriority">0</span>
-            <span>High Priority</span>
-        </div>
-        <div class="status-item">
             <span class="status-number" id="totalToday">0</span>
             <span>Total Today</span>
         </div>
@@ -348,41 +333,40 @@
 
     <script>
         // Sample data - in production, this would come from your AWS API
-        const sampleAlerts = [
-            {
-                alertId: "alert-001",
-                timestamp: new Date().toISOString(),
-                emergencyType: "MEDICAL",
-                severity: "HIGH",
-                location: "123 Oak Street, Downtown",
-                peopleInvolved: "2 people, 1 with chest pain, 1 conscious",
-                immediateActions: "Paramedics needed immediately, AED on scene",
-                summary: "Cardiac emergency at residence. Male, 65, experiencing severe chest pain. Wife providing CPR.",
-                status: "NEW"
-            },
-            {
-                alertId: "alert-002",
-                timestamp: new Date(Date.now() - 15*60000).toISOString(),
-                emergencyType: "FIRE",
-                severity: "HIGH",
-                location: "456 Elm Avenue, Apartment Complex",
-                peopleInvolved: "Unknown number, possible entrapment on 3rd floor",
-                immediateActions: "Fire department dispatched, ladder truck required",
-                summary: "Structure fire reported at apartment building. Heavy smoke visible from second and third floors.",
-                status: "DISPATCHED"
-            },
-            {
-                alertId: "alert-003",
-                timestamp: new Date(Date.now() - 45*60000).toISOString(),
-                emergencyType: "ACCIDENT",
-                severity: "MEDIUM",
-                location: "Highway 101, Mile Marker 23",
-                peopleInvolved: "3 vehicles, 2 minor injuries",
-                immediateActions: "Police for traffic control, 1 ambulance",
-                summary: "Multi-vehicle accident on highway. Traffic backing up, minor injuries reported.",
-                status: "EN_ROUTE"
-            }
-        ];
+        // const sampleAlerts = [
+        //     {
+        //         alertId: "alert-001",
+        //         timestamp: new Date().toISOString(),
+        //         emergencyType: "MEDICAL",
+        //         severity: "HIGH",
+        //         location: "123 Oak Street, Downtown",
+        //         peopleInvolved: "2 people, 1 with chest pain, 1 conscious",
+        //         summary: "Cardiac emergency at residence. Male, 65, experiencing severe chest pain. Wife providing CPR.",
+        //         status: "NEW"
+        //     },
+        //     {
+        //         alertId: "alert-002",
+        //         timestamp: new Date(Date.now() - 15*60000).toISOString(),
+        //         emergencyType: "FIRE",
+        //         severity: "HIGH",
+        //         location: "456 Elm Avenue, Apartment Complex",
+        //         peopleInvolved: "Unknown number, possible entrapment on 3rd floor",
+        //         immediateActions: "Fire department dispatched, ladder truck required",
+        //         summary: "Structure fire reported at apartment building. Heavy smoke visible from second and third floors.",
+        //         status: "DISPATCHED"
+        //     },
+        //     {
+        //         alertId: "alert-003",
+        //         timestamp: new Date(Date.now() - 45*60000).toISOString(),
+        //         emergencyType: "ACCIDENT",
+        //         severity: "MEDIUM",
+        //         location: "Highway 101, Mile Marker 23",
+        //         peopleInvolved: "3 vehicles, 2 minor injuries",
+        //         immediateActions: "Police for traffic control, 1 ambulance",
+        //         summary: "Multi-vehicle accident on highway. Traffic backing up, minor injuries reported.",
+        //         status: "EN_ROUTE"
+        //     }
+        //];
 
         function formatTimestamp(isoString) {
             const date = new Date(isoString);
@@ -408,7 +392,6 @@
                 <div class="alert-card ${alert.severity}" data-alert-id="${alert.alertId}">
                     <div class="alert-header">
                         <span class="emergency-type ${alert.emergencyType}">${alert.emergencyType}</span>
-                        <span class="severity ${alert.severity}">${alert.severity}</span>
                     </div>
                     
                     <div class="alert-content">
@@ -423,20 +406,12 @@
                         </div>
                         
                         <div class="info-row">
-                            <span class="info-label">⚡ Actions:</span>
-                            <span class="info-value">${alert.immediateActions}</span>
-                        </div>
-                        
-                        <div class="info-row">
                             <span class="info-label">📝 Summary:</span>
                             <span class="info-value">${alert.summary}</span>
                         </div>
                     </div>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-dispatch" onclick="dispatchAlert('${alert.alertId}')">
-                            🚑 Dispatch Units
-                        </button>
                         <button class="btn btn-details" onclick="viewDetails('${alert.alertId}')">
                             📄 View Details
                         </button>
@@ -451,12 +426,10 @@
 
         function updateStatusBar(alerts) {
             const activeAlerts = alerts.filter(a => a.status === 'NEW' || a.status === 'DISPATCHED').length;
-            const highPriority = alerts.filter(a => a.severity === 'HIGH').length;
             const totalToday = alerts.length;
             const lastUpdate = new Date().toLocaleTimeString();
             
             document.getElementById('activeAlerts').textContent = activeAlerts;
-            document.getElementById('highPriority').textContent = highPriority;
             document.getElementById('totalToday').textContent = totalToday;
             document.getElementById('lastUpdate').textContent = lastUpdate;
         }
@@ -486,7 +459,6 @@
                     
                     // Sort alerts by timestamp (newest first) and severity
                     alerts.sort((a, b) => {
-                        const severityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
                         const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
                         if (severityDiff !== 0) return severityDiff;
                         return new Date(b.timestamp) - new Date(a.timestamp);
@@ -501,7 +473,6 @@
                         <div class="no-alerts">
                             <p>Error loading alerts: ${error.message}</p>
                             <p>Check console for details</p>
-                            <button class="btn btn-dispatch" onclick="loadAlerts()">Try Again</button>
                         </div>
                     `;
                     updateStatusBar([]);
