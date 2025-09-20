@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Response Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 3px solid #ff4444;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .alerts-container {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .alert-card {
+            background: white;
+            color: #333;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-left: 8px solid;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: slideInUp 0.6s ease-out;
+        }
+
+        .alert-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-card.MEDIUM {
+            border-left-color: #ff9500;
+            background: linear-gradient(135deg, #fff 0%, #fff4e6 100%);
+        }
+
+        .alert-card.LOW {
+            border-left-color: #28a745;
+            background: linear-gradient(135deg, #fff 0%, #eefff0 100%);
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .emergency-type {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .emergency-type.MEDICAL {
+            background: #ff4444;
+            color: white;
+        }
+
+        .emergency-type.FIRE {
+            background: #ff6600;
+            color: white;
+        }
+
+        .emergency-type.POLICE {
+            background: #0066cc;
+            color: white;
+        }
+
+        .emergency-type.ACCIDENT {
+            background: #9900cc;
+            color: white;
+        }
+
+        .emergency-type.OTHER {
+            background: #666;
+            color: white;
+        }
+
+        .severity {
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .severity.MEDIUM {
+            background: #ff9500;
+            color: white;
+        }
+
+        .severity.LOW {
+            background: #28a745;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .alert-content {
+            line-height: 1.6;
+        }
+
+        .info-row {
+            display: flex;
+            margin: 12px 0;
+            align-items: flex-start;
+        }
+
+        .info-label {
+            font-weight: bold;
+            min-width: 140px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            flex: 1;
+            color: #333;
+        }
+
+        .location {
+            background: #e3f2fd;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            font-weight: 500;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 0.9rem;
+            text-align: right;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-dispatch {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-dispatch:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-details {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-details:hover {
+            background: #5a6268;
+        }
+
+        .no-alerts {
+            text-align: center;
+            padding: 60px;
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #e63939;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.6);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.1rem;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .alerts-container {
+                grid-template-columns: 1fr;
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .status-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🚨 Emergency Response Dashboard</h1>
+        <p>Real-time monitoring of emergency alerts</p>
+    </header>
+
+    <div class="status-bar">
+        <div class="status-item">
+            <span class="status-number" id="activeAlerts">0</span>
+            <span>Active Alerts</span>
+        </div>
+        <div class="status-item">
+            <span class="status-number" id="totalToday">0</span>
+            <span>Total Today</span>
+        </div>
+        <div class="status-item">
+            <span class="status-number" id="lastUpdate">--:--</span>
+            <span>Last Update</span>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadAlerts()">🔄 Refresh</button>
+
+    <div id="alertsContainer" class="alerts-container">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading emergency alerts...</p>
+        </div>
+    </div>
+
+    <script>
+        // Sample data - in production, this would come from your AWS API
+        // const sampleAlerts = [
+        //     {
+        //         alertId: "alert-001",
+        //         timestamp: new Date().toISOString(),
+        //         emergencyType: "MEDICAL",
+        //         severity: "HIGH",
+        //         location: "123 Oak Street, Downtown",
+        //         peopleInvolved: "2 people, 1 with chest pain, 1 conscious",
+        //         summary: "Cardiac emergency at residence. Male, 65, experiencing severe chest pain. Wife providing CPR.",
+        //         status: "NEW"
+        //     },
+        //     {
+        //         alertId: "alert-002",
+        //         timestamp: new Date(Date.now() - 15*60000).toISOString(),
+        //         emergencyType: "FIRE",
+        //         severity: "HIGH",
+        //         location: "456 Elm Avenue, Apartment Complex",
+        //         peopleInvolved: "Unknown number, possible entrapment on 3rd floor",
+        //         immediateActions: "Fire department dispatched, ladder truck required",
+        //         summary: "Structure fire reported at apartment building. Heavy smoke visible from second and third floors.",
+        //         status: "DISPATCHED"
+        //     },
+        //     {
+        //         alertId: "alert-003",
+        //         timestamp: new Date(Date.now() - 45*60000).toISOString(),
+        //         emergencyType: "ACCIDENT",
+        //         severity: "MEDIUM",
+        //         location: "Highway 101, Mile Marker 23",
+        //         peopleInvolved: "3 vehicles, 2 minor injuries",
+        //         immediateActions: "Police for traffic control, 1 ambulance",
+        //         summary: "Multi-vehicle accident on highway. Traffic backing up, minor injuries reported.",
+        //         status: "EN_ROUTE"
+        //     }
+        //];
+
+        function formatTimestamp(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleString();
+        }
+
+        function getTimeAgo(isoString) {
+            const now = new Date();
+            const alertTime = new Date(isoString);
+            const diffMinutes = Math.floor((now - alertTime) / (1000 * 60));
+            
+            if (diffMinutes < 1) return "Just now";
+            if (diffMinutes < 60) return `${diffMinutes}m ago`;
+            const diffHours = Math.floor(diffMinutes / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            return `${Math.floor(diffHours / 24)}d ago`;
+        }
+
+        function createAlertCard(alert) {
+            const timeAgo = getTimeAgo(alert.timestamp);
+            
+            return `
+                <div class="alert-card ${alert.severity}" data-alert-id="${alert.alertId}">
+                    <div class="alert-header">
+                        <span class="emergency-type ${alert.emergencyType}">${alert.emergencyType}</span>
+                    </div>
+                    
+                    <div class="alert-content">
+                        <div class="info-row">
+                            <span class="info-label">📍 Location:</span>
+                            <span class="info-value location">${alert.location}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">👥 Involved:</span>
+                            <span class="info-value">${alert.peopleInvolved}</span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">📝 Summary:</span>
+                            <span class="info-value">${alert.summary}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-details" onclick="viewDetails('${alert.alertId}')">
+                            📄 View Details
+                        </button>
+                    </div>
+                    
+                    <div class="timestamp">
+                        🕐 ${formatTimestamp(alert.timestamp)} (${timeAgo})
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateStatusBar(alerts) {
+            const activeAlerts = alerts.filter(a => a.status === 'NEW' || a.status === 'DISPATCHED').length;
+            const totalToday = alerts.length;
+            const lastUpdate = new Date().toLocaleTimeString();
+            
+            document.getElementById('activeAlerts').textContent = activeAlerts;
+            document.getElementById('totalToday').textContent = totalToday;
+            document.getElementById('lastUpdate').textContent = lastUpdate;
+        }
+
+        function loadAlerts() {
+            const container = document.getElementById('alertsContainer');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading emergency alerts...</p></div>';
+            
+            // Replace this URL with your actual API Gateway URL
+            const API_URL = 'https://ytza1b02we.execute-api.us-east-1.amazonaws.com/prod/alerts';
+            
+            fetch(API_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const alerts = data.alerts || [];
+                    
+                    if (alerts.length === 0) {
+                        container.innerHTML = '<div class="no-alerts">No active emergency alerts</div>';
+                        updateStatusBar([]);
+                        return;
+                    }
+                    
+                    // Sort alerts by timestamp (newest first) and severity
+                    alerts.sort((a, b) => {
+                        const severityDiff = severityOrder[b.severity] - severityOrder[a.severity];
+                        if (severityDiff !== 0) return severityDiff;
+                        return new Date(b.timestamp) - new Date(a.timestamp);
+                    });
+                    
+                    container.innerHTML = alerts.map(createAlertCard).join('');
+                    updateStatusBar(alerts);
+                })
+                .catch(error => {
+                    console.error('Error loading alerts:', error);
+                    container.innerHTML = `
+                        <div class="no-alerts">
+                            <p>Error loading alerts: ${error.message}</p>
+                            <p>Check console for details</p>
+                        </div>
+                    `;
+                    updateStatusBar([]);
+                });
+        }
+
+        function dispatchAlert(alertId) {
+            const card = document.querySelector(`[data-alert-id="${alertId}"]`);
+            if (card) {
+                card.style.opacity = '0.7';
+                alert(`Dispatching units for alert ${alertId}`);
+                // In production, make API call to update alert status
+            }
+        }
+
+        function viewDetails(alertId) {
+            alert(`Viewing details for alert ${alertId}\nThis would open a detailed view with the original transcript and all processing steps.`);
+            // In production, open modal or navigate to detail page
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadAlerts, 30000);
+
+        // Initial load
+        loadAlerts();
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                loadAlerts();
+            }
+        });
+    </script>
+</body>
+</html>
